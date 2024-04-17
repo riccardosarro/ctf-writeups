@@ -1,22 +1,35 @@
-# OpenECSC 2024: Web / Life Quiz [33 solves / 105 pts]
+# openECSC 2024 - Round 1
 
-## Indexes
-0. [Terminology](#terminology)
-1. [Challenge description](#challenge-description)
-2. [Analyzing the source code](#analyzing-the-source-code)
-3. [Command Injection](#command-injection)
-4. [Getting 15 points](#getting-15-points)
-5. [Winning the race](#winning-the-race)
-6. [Exploit scripts](#exploit-scripts)
+## [pwn] Life Quiz (33 solves)
 
-## Terminology
-- **Flag**: The goal of the challenge, a string that is usually in the format `flag{...}`, in our case the format is `openECSC{...}`
-- **SQLi**: SQL Injection, a vulnerability that allows an attacker to execute arbitrary SQL queries in the database
-- **Path Traversal**: A vulnerability that allows an attacker to access files outside the intended directory
-- **Command Injection**: A vulnerability that allows an attacker to execute arbitrary commands
+Try out our quiz to win a incredible prize!
 
+Site: [http://lifequiz.challs.open.ecsc2024.it](http://lifequiz.challs.open.ecsc2024.it)
 
-## 1. Challenge description
+Writeup author: <@Ricy>  
+Challenge authors: <@Xato>
+
+## Table of contents
+- [Overview](#overview)
+  - [Terminology](#terminology)
+  - [Summary](#summary)
+- [Solution](#solution)
+    - [Source code analysis](#source-code-analysis)
+    - [Command injection](#command-injection)
+    - [Getting 15 points](#getting-15-points)
+    - [Winning the race](#winning-the-race)
+      - [Race window](#race-window)
+- [Exploit](#exploit)
+
+## Overview
+
+### Terminology
+- **Flag**: the goal of the challenge, a string that is usually in the format `flag{...}`, in our case the format is `openECSC{...}`
+- **SQLi**: SQL injection, a vulnerability that allows an attacker to execute arbitrary SQL queries in the database
+- **Path Traversal**: a vulnerability that allows an attacker to access files outside the intended directory
+- **Command Injection**: a vulnerability that allows an attacker to execute arbitrary commands
+
+### Summary
 The challenge provided us with a website in PHP that allowed us to:
 - **register** with an *username* and *email*, it will then set a random password for us and send it to the page after successful registration
 - **login** with the *username* and *password*
@@ -25,7 +38,9 @@ The challenge provided us with a website in PHP that allowed us to:
 - If you have less than 15 points but **answered all the questions**, you cannot continue the quiz and can only visit `/reset.php` to reset the quiz and start again from question number 1.
 
 
-## 2. Analyzing the source code
+## Solution
+
+### Source code analysis
 The flag (our goal) is in the `/prizes/flag.jpg` file. From the `Dockerfile` we can guess that it is generated using the `trophy.jpg` file as a template using the command:
 ```Dockerfile
 RUN convert -draw 'text 0,1219 "flag{test_flag}"' -pointsize 60 -gravity Center /trophy.jpg /prizes/flag.jpg
@@ -61,7 +76,7 @@ Unfortunately, though, it is not controlled by us since it is a random id genera
 ...
 ```
 
-Also there is potential **SQLi** on the email during registering, since it is not put in a prepared statement (only password and username it is)
+Also there is potential **SQLi** on the email during registering, since it is not put in a prepared statement (only password and username are).
 ```php
 # login.php - 56:58
 ...
@@ -129,7 +144,7 @@ convert -draw 'text 0,1219 "<our_input>"' -pointsize 100 -gravity Center /trophy
 Treating it effectively as a string. We cannot inject commands like `${ls}` or `` `ls` `` since they will be treated as string and not commands. But we can inject parameters, opening and closing the **"** as much as we like, or add some other text, which could *potentially* alter the behavior of the convert command. To understand if this is feasible we need to look up the **convert** command from **ImageMagick**, and especially the **-draw option**.
 
 
-## 3. Command Injection
+### Command injection
 After some time googling, I found that the `convert` command from **ImageMagick** is a tool that allows us to manipulate images in many ways. Our interest lays on the **draw** option since it is the one injectable. From the [documentation](https://legacy.imagemagick.org/script/command-line-options.php?#draw) of the **-draw option** we get:
 
 > Annotate an image with **one or more** graphic primitives.
@@ -167,7 +182,7 @@ The primitive that immediately attracts our attention is the **image** primitive
 ```
     image operator x0,y0 w,h filename
 ```
-and it gives us an example that catches our interest:
+and gives us an example that catches our interest:
 
 >Use *image* to composite an image with another image. Follow the image keyword with the composite operator, image location, image size, and filename:
 >**-draw 'image SrcOver 100,100 225,225 image.jpg'** 
@@ -215,14 +230,14 @@ that works for us as the same as `SrcOver` (or src-over) but it is shorter, so w
 ```
 which is _exactly_ 36 (Is it a coincidence? I don't believe so)
 
-## 4. Getting 15 points
+### Getting 15 points
 We now have the **command injection** on the username ready, we need to **register** with the **username** as the payload found before, play the quiz, and get **15 points** to trigger the **command injection** when getting the prize. 
 
 The main concern is that the correct answer is pseudo-randomly generated, independently for each request. We need to find a way to get 15 points, other than being very, very lucky.
 
 This is where I lost many, many hours. Some ideas I had were:
 - **The `array_rand` function** is not cryptographically secure, so it should be possible to predict the next number having **enough** numbers from the sequence. The issue is that, unfortunately, we are not the only ones trying to get the flag so we are not sure that the sequence we get it is truthy, and also we do not want to make too many requests.
-- **Race condition**: Looking at the `quiz.php` file, we can see that the way it manages the points and the question_id is not proper:
+- **Race condition**: Looking at the `quiz.php` file, we can see that the way it manages the points and the **question_id** is not proper:
 ```php
 # quiz.php - 13:94
 ...
@@ -277,7 +292,7 @@ Notice that any combination of the queries executed by the server for us is fine
 Sounds like a plan, right?
 The only issue is the way sessions are handled in PHP, **sessions in PHP are locked**, so we cannot have the same session run two (or more) files at the same time. 
 
-**Locks** are a way to prevent **race conditions**, which is what we would like to exploit, they . What will happen is that if we have two requests with the **same session**, the first one will "*acquire the lock*", the second request will wait until the lock is "*released*", that is when the first request is finished. Exactly what we don't want.
+**Locks** are a way to prevent **race conditions**, which is what we would like to exploit. What will happen is that if we have two requests with the **same session**, the first one will "*acquire the lock*", the second request will wait until the lock is "*released*", that is when the first request is finished. Exactly what we don't want.
 
 After many hours trying to get other ideas, even excluding the race condition itself, which lead me to many rabbit holes, I dropped by the [cookie attack session of Hacktricks](https://book.hacktricks.xyz/pentesting-web/hacking-with-cookies#extra-vulnerable-cookies-checks):
 
@@ -289,7 +304,7 @@ In PHP the session is handled with the **`PHPSESSID` cookie**. It is the **cooki
 
 Thus, after these check I realized that the server was not setting the cookie for me, but **I was the one controlling it**. Indeed, I could log in with the same credentials, but with different cookies! This meant that I could have **multiple sessions** that represented the **same (single) user**, having multiple sessions meant **no session locking**, and thus I could trigger the race condition talked before!
 
-## 5. Winning the race
+### Winning the race
 After some time to code the script, I tried first locally to see if it worked, and it did! I was sending 4 requests at a time, from 4 different sessions, and were able to get 15 points always after around 12 rounds, then I was able to visit the `trophy.php` page and get the flag.
 
 I then tried to run it on the remote server, but I had many issues with latency, the main obstacle was that I was not able to make the server **handle** the requests at the **same time**. So it happened that the Q1 of some requests were executed after the Q3 of other requests. Thus, leading to increasing the question_id more times that I wanted. 
@@ -301,14 +316,14 @@ Usually, there are ways to increase the window, for example, by making the serve
 
 Thus, excluding increasing the race window, my plan was to increase as possible the number of requests I was sending, and make them concurrent on a lower level (I was using threads in python).
 
-I found this python library called [requests-racer](https://github.com/nccgroup/requests-racer) 
+I found this python library called [requests-racer](https://github.com/nccgroup/requests-racer)
 >Requests-Racer is a small Python library that lets you use the Requests library to submit multiple requests that will be processed by their destination servers at approximately the same time, even if the requests have different destinations or have payloads of different sizes.
 
 Having to change the script to use this library, I was able to send many requests at the same time, and after some trials, ending up sending 100 requests at the same time, and I was able to get 15 points. Thus after visiting the `trophy.php` page:
-![Flag](flag.jpeg)
+![Flag](img/flag.jpeg)
 
 
-## 6. Exploit scripts
+## Exploit
 Here you can find my exploit scripts, have fun replicating it!
 
 ```python
@@ -349,9 +364,7 @@ if args.REMOTE:
 else:
     url = 'http://localhost:8000'
 
-# solved with THREADS=100,
-# tried with 80 too and it works only sometimes
-# lower values are even more unreliable
+# solved with THREADS=100
 no_of_sessions = 4 if args.THREADS == '' else int(args.THREADS)
 sessions = []
 points = 0
@@ -653,5 +666,6 @@ def exploit():
 
 if __name__ == '__main__':
     exploit()
+
 
 ```
