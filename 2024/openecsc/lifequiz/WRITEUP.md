@@ -1,6 +1,6 @@
 # openECSC 2024 - Round 1
 
-## [pwn] Life Quiz (33 solves)
+## [web] Life Quiz (33 solves)
 
 Try out our quiz to win a incredible prize!
 
@@ -41,7 +41,7 @@ The challenge provided us with a website in PHP that allowed us to:
 ## Solution
 
 ### Source code analysis
-The flag (our goal) is in the `/prizes/flag.jpg` file. From the `Dockerfile` we can guess that it is generated using the `trophy.jpg` file as a template using the command:
+The flag (our goal) is in the `/prizes/flag.jpg` file. From the `Dockerfile` we can guess, even without ever seeing the `convert` command before, that it is generated using the `trophy.jpg` file as a template using:
 ```Dockerfile
 RUN convert -draw 'text 0,1219 "flag{test_flag}"' -pointsize 60 -gravity Center /trophy.jpg /prizes/flag.jpg
 ```
@@ -285,7 +285,7 @@ A possible interleaving order of execution of the queries could be:
 >**A.Q1** -> **B.Q1** -> **A.Q2** -> **B.Q2** -> **A.Q3** -> **B.Q3**
 
 
-The **points** will be incremented by 2 (if the answer is correct in both requests), but the **question_id** will be set to the same value, thus if we can send more requests answering the same **question_id**, we could potentially having the points increased by one **each time**, while the question id set only by plus one.
+The **points** will be incremented by 2 (if the answer is correct in both requests), but the **question_id** will be set to the same value, thus if we can send more requests answering the same **question_id**, we could potentially having the points increased by one **for each request**, while the question id set only by plus one.
 
 Notice that any combination of the queries executed by the server for us is fine as long as the **Q1** (retrieving user info from db) for each request is executed before the **Q3** of any requests (since the **Q3** is the one that sets the **question_id**).
 
