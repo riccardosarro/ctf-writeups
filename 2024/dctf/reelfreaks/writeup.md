@@ -1,14 +1,14 @@
 # ReelFreaks DTCF24 Challenge Writeup
 
 ## Info
->**Author**: *Dages* 
-**Category**: Web
-**Solves**: 26
+>**Author**: *Dages*<br/>
+**Category**: Web<br/>
+**Solves**: 26<br/>
 **Team**: Tower of Hanoi
 
 ## Description
->Some things are better to remain unseen. Unless, of course, you are a real freak.
-NOTE: the website is served over HTTPS
+>Some things are better to remain unseen. Unless, of course, you are a real freak.<br/>
+NOTE: the website is served over HTTPS<br/>
 Flag format: DCTF{}
 
 ## Solution
