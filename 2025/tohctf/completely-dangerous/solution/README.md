@@ -1,5 +1,5 @@
 # Completely Dangerous<br><small style="color: #888;font-size: 20px;">writeup @ ToH CTF 2025</small>
-<span style="background-color: #121212; padding: 4px; border-radius: 3px; margin-right: 2px;">Category: `web`</span> <span style="background-color: #121212; padding: 4px; border-radius: 3px; margin-right: 2px;">Author: [`Ricy`](https://github.com/riccardosarro)</span> <span style="background-color: #121212; padding: 4px; border-radius: 3px;">Solves: `2`</span>
+<span style="background-color: #121212; padding: 4px; border-radius: 3px; margin-right: 2px;">Category: `web`</span> <span style="background-color: #121212; padding: 4px; border-radius: 3px; margin-right: 2px;">Author: [`Ricy`](https://github.com/riccardosarro)</span> <span style="background-color: #121212; padding: 4px; border-radius: 3px;">Solves: `3`</span>
 
 > I am developing this app with a beautiful feature that allows users to color and choose their name and color. But... I believe something is not right.
 
